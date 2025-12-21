@@ -28,7 +28,6 @@ logger.setLevel(LOG_LEVEL)
 )
 def send_email_notification(self, notification_id: int):
     """
-    CHANGE: Channel-specific task for email delivery
     Runs on dedicated email worker instance (Requirement 3)
     Guarantees exactly-once delivery with pessimistic locking (Requirement 4)
     
@@ -94,7 +93,6 @@ def send_email_notification(self, notification_id: int):
 )
 def send_push_notification(self, notification_id: int):
     """
-    CHANGE: Channel-specific task for push delivery
     Runs on dedicated push worker instance (Requirement 3)
     Guarantees exactly-once delivery with pessimistic locking (Requirement 4)
     
@@ -163,9 +161,9 @@ def process_scheduled_notifications():
             Notification.status == "pending",
             Notification.scheduled_time <= now
         ).with_for_update(skip_locked=True).order_by(
-            Notification.priority.desc(),  # HIGH priority first
+            Notification.priority.asc(),  # HIGH priority first
             Notification.scheduled_time     # Then by scheduled time
-        ).limit(100).all()  # CHANGE: Process in batches of 100
+        ).limit(100).all()
         
         if pending:
             logger.info(f"Przetwarzam {len(pending)} zaplanowanych powiadomień")
@@ -173,7 +171,6 @@ def process_scheduled_notifications():
             for notif in pending:
                 logger.debug(f"Kolejkuję powiadomienie {notif.id} (priorytet: {notif.priority}, kanał: {notif.channel})")
                 
-                # CHANGE: Route to channel-specific queue (Requirement 3)
                 if notif.channel == "email":
                     send_email_notification.apply_async((notif.id,), queue='email_queue')
                 elif notif.channel == "push":

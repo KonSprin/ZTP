@@ -286,23 +286,59 @@
             eventSource.onopen = () => {
                 document.getElementById('status').textContent = `Connected as ${recipient}`;
                 document.getElementById('status').className = 'status connected';
+                // CHANGE: Reset reconnection attempts on successful connection
+                sessionStorage.setItem('reconnectAttempts', '0');
+                console.log('Successfully connected to notification stream');
             };
 
             eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                addNotification(data);
+                // CHANGE: Ignore empty events (keepalive comments)
+                if (!event.data || event.data.trim() === '') {
+                    return;
+                }
+                
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    // CHANGE: Filter out connection/system messages, only show actual notifications
+                    if (data.type === 'connected') {
+                        console.log('Connected to stream:', data);
+                        return; // Don't display connection messages
+                    }
+                    
+                    // Only add if it has notification fields (title, content, timestamp)
+                    if (data.title && data.content && data.timestamp) {
+                        addNotification(data);
+                    } else {
+                        console.log('Ignoring non-notification message:', data);
+                    }
+                } catch (error) {
+                    console.error('Error parsing message:', error, event.data);
+                }
             };
 
-            eventSource.onerror = () => {
-                document.getElementById('status').textContent = 'Connection Lost';
+            eventSource.onerror = (error) => {
+                console.error('SSE connection error:', error);
+                document.getElementById('status').textContent = 'Connection Lost - Reconnecting...';
                 document.getElementById('status').className = 'status disconnected';
                 
-                // Auto-reconnect after 3 seconds
+                // CHANGE: Close existing connection properly
+                if (eventSource) {
+                    eventSource.close();
+                }
+                
+                // CHANGE: Exponential backoff for reconnection
+                const reconnectDelay = Math.min(3000 * Math.pow(1.5, (sessionStorage.getItem('reconnectAttempts') || 0)), 30000);
+                sessionStorage.setItem('reconnectAttempts', parseInt(sessionStorage.getItem('reconnectAttempts') || 0) + 1);
+                
+                console.log(`Reconnecting in ${reconnectDelay}ms...`);
+                
                 setTimeout(() => {
                     if (currentRecipient) {
+                        console.log('Attempting to reconnect...');
                         connectUser();
                     }
-                }, 3000);
+                }, reconnectDelay);
             };
         }
 

@@ -78,6 +78,12 @@ services:
     #   - notification-net
     restart: no
 
+  mailhog:
+    container_name: mailhog
+    image: mailhog/mailhog
+    ports:
+      - "1025:25"
+      - "8025:8025"
 
 #   postgres:
 #     image: postgres:18.0-trixie

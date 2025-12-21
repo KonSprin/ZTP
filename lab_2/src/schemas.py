@@ -10,7 +10,7 @@ class NotificationBase(BaseModel):
     content: str = Field(..., min_length=1)
     scheduled_time: Optional[datetime] = None
     priority: Literal["low", "high"] = "low"
-    user_timezone: str = "UTC"  # CHANGE: Added timezone field (Requirement 1 & 9)
+    user_timezone: str = "UTC"
 
     @field_validator('channel')
     def validate_channel(cls, v):
@@ -34,7 +34,6 @@ class NotificationBase(BaseModel):
     @model_validator(mode='after')
     def validate_scheduled_time_and_quiet_hours(self):
         """
-        CHANGE: New validator to handle timezone conversion and quiet hours (Requirement 9)
         Validates that notifications aren't scheduled during quiet hours (22:00-08:00 local time)
         If scheduled during quiet hours, shifts to 08:00 next available morning
         """

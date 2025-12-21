@@ -50,7 +50,7 @@ class NotificationService:
     
     def force_send_now(self, db, id: int):
         """
-        CHANGE: Enhanced with pessimistic locking to prevent race conditions
+        Enhanced with pessimistic locking to prevent race conditions
         Forces immediate delivery by setting scheduled_time to now and triggering task
         """
         notif = db.query(Notification).filter(
@@ -68,7 +68,7 @@ class NotificationService:
             return notif
         return None
     
-    # CHANGE: New helper method to route notifications to correct channel queue
+    # New helper method to route notifications to correct channel queue
     def _send_to_channel(self, notification: Notification):
         """
         Routes notification to appropriate channel-specific queue (Requirement 3)

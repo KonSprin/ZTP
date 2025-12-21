@@ -34,7 +34,7 @@ services:
   celery_worker_email:
     container_name: worker_email
     build: .
-    command: poetry run celery -A notifier worker --loglevel=info -Q email_queue --concurrency=4
+    command: poetry run celery -A notifier worker --loglevel=info -Q email_queue,default --concurrency=4
     env_file:
       - .env
     restart: no

@@ -1,8 +1,8 @@
 # schemas.py
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, EmailStr
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Literal
-from zoneinfo import ZoneInfo  # CHANGE: Added for timezone support
+from zoneinfo import ZoneInfo
 
 class NotificationBase(BaseModel):
     recipient: str = Field(..., min_length=1)
@@ -95,3 +95,32 @@ class NotificationUpdate(BaseModel):
     scheduled_time: Optional[datetime] = None
     priority: Optional[Literal["low", "high"]] = None
     user_timezone: Optional[str] = None
+
+class UserBase(BaseModel):
+    email: EmailStr
+    name: str = Field(..., min_length=1)
+    timezone: str = "UTC"
+    push_enabled: bool = True
+    email_enabled: bool = True
+    quiet_hours_enabled: bool = True
+
+class UserCreate(UserBase):
+    push_token: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    timezone: Optional[str] = None
+    push_enabled: Optional[bool] = None
+    email_enabled: Optional[bool] = None
+    quiet_hours_enabled: Optional[bool] = None
+    push_token: Optional[str] = None
+
+class UserResponse(UserBase):
+    id: int
+    push_token: Optional[str]
+    created_at: datetime
+    last_active: Optional[datetime]
+    is_active: bool
+
+    class Config:
+        from_attributes = True

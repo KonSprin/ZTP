@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notifications Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .user-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .user-selector select {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .user-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .user-selector button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .user-selector button:hover {
+            background: #5568d3;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .notifications {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .notification {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid #667eea;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .notification-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .notification-content {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .notification-recipient {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            background: white;
+            padding: 60px 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            color: #999;
+            font-size: 20px;
+        }
+
+        .stats {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📬 Push Notifications Dashboard</h1>
+            <p>Real-time notification monitoring</p>
+            
+            <div class="user-selector">
+                <select id="userSelect">
+                    <option value="">Select recipient...</option>
+                </select>
+                <button onclick="connectUser()">Connect</button>
+            </div>
+            
+            <div>
+                <span class="status disconnected" id="status">Disconnected</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Total Received</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="sessionCount">0</div>
+                <div class="stat-label">This Session</div>
+            </div>
+        </div>
+
+        <div id="notificationsList" class="notifications">
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                <h3>No notifications yet</h3>
+                <p style="color: #999; margin-top: 10px;">Waiting for incoming push notifications...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let sessionCount = 0;
+        let totalCount = 0;
+        let currentRecipient = null;
+
+        // Load available users on page load
+        async function loadUsers() {
+            try {
+                const response = await fetch('/users');
+                const users = await response.json();
+                
+                const select = document.getElementById('userSelect');
+                select.innerHTML = '<option value="">Select recipient...</option>';
+                
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.email || user.id;
+                    option.textContent = `${user.email || user.id} (${user.name || 'User'})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+
+        function connectUser() {
+            const select = document.getElementById('userSelect');
+            const recipient = select.value;
+            
+            if (!recipient) {
+                alert('Please select a recipient');
+                return;
+            }
+
+            // Disconnect existing connection
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            currentRecipient = recipient;
+            sessionCount = 0;
+            updateStats();
+
+            // Connect to SSE endpoint for this recipient
+            eventSource = new EventSource(`/notifications/stream/${encodeURIComponent(recipient)}`);
+            
+            eventSource.onopen = () => {
+                document.getElementById('status').textContent = `Connected as ${recipient}`;
+                document.getElementById('status').className = 'status connected';
+            };
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                addNotification(data);
+            };
+
+            eventSource.onerror = () => {
+                document.getElementById('status').textContent = 'Connection Lost';
+                document.getElementById('status').className = 'status disconnected';
+                
+                // Auto-reconnect after 3 seconds
+                setTimeout(() => {
+                    if (currentRecipient) {
+                        connectUser();
+                    }
+                }, 3000);
+            };
+        }
+
+        function addNotification(data) {
+            const container = document.getElementById('notificationsList');
+            
+            // Remove empty state
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            // Create notification element
+            const notif = document.createElement('div');
+            notif.className = 'notification';
+            
+            const time = new Date(data.timestamp).toLocaleString('pl-PL');
+            
+            notif.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-title">${data.title}</div>
+                    <div class="notification-time">${time}</div>
+                </div>
+                <div class="notification-content">${data.content}</div>
+                <div class="notification-recipient">To: ${data.recipient}</div>
+            `;
+
+            // Add to top of list
+            container.insertBefore(notif, container.firstChild);
+
+            // Update stats
+            sessionCount++;
+            totalCount++;
+            updateStats();
+
+            // Keep only last 50 notifications
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+
+            // Play notification sound (optional)
+            // new Audio('/notification.mp3').play();
+        }
+
+        function updateStats() {
+            document.getElementById('sessionCount').textContent = sessionCount;
+            document.getElementById('totalCount').textContent = totalCount;
+        }
+
+        // Load users when page loads
+        loadUsers();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (eventSource) {
+                eventSource.close();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from ..repositories.notification_repository import NotificationRepository
 from ..models import Notification
-from ..notifier import send_notification
+from ..notifier.tasks import send_email_notification, send_push_notification
 
 class NotificationService:
     def __init__(self):
@@ -18,7 +18,7 @@ class NotificationService:
         if not created.scheduled_time.tzinfo:
             created.scheduled_time = created.scheduled_time.replace(tzinfo=timezone.utc)
         if created.scheduled_time <= datetime.now(timezone.utc):
-            send_notification.delay(created.id)
+            self._send_to_channel(created)
         return created
     
     def get_notifications(self, db):
@@ -40,7 +40,7 @@ class NotificationService:
             
             # If rescheduled to now/past, trigger immediately
             if new_time <= datetime.now(timezone.utc):
-                send_notification.delay(notif.id)
+                self._send_to_channel(notif)
             
             return notif
         return None
@@ -49,15 +49,32 @@ class NotificationService:
         return self.repo.cancel(db, id)
     
     def force_send_now(self, db, id: int):
-        """Forces immediate delivery by setting scheduled_time to now and triggering task"""
-        notif = self.repo.get_by_id(db, id)
-        if notif and notif.status == "pending":
+        """
+        CHANGE: Enhanced with pessimistic locking to prevent race conditions
+        Forces immediate delivery by setting scheduled_time to now and triggering task
+        """
+        notif = db.query(Notification).filter(
+            Notification.id == id,
+            Notification.status == "pending"
+        ).with_for_update().first()
+        
+        if notif:
             notif.scheduled_time = datetime.now(timezone.utc)
             db.commit()
             db.refresh(notif)
             
-            # Trigger task immediately
-            send_notification.apply_async((notif.id,))
+            self._send_to_channel(notif)
             
             return notif
         return None
+    
+    # CHANGE: New helper method to route notifications to correct channel queue
+    def _send_to_channel(self, notification: Notification):
+        """
+        Routes notification to appropriate channel-specific queue (Requirement 3)
+        Uses consistent .delay() pattern for all async calls
+        """
+        if notification.channel == "email":
+            send_email_notification.delay(notification.id)
+        elif notification.channel == "push":
+            send_push_notification.delay(notification.id)

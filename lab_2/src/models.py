@@ -11,6 +11,7 @@ class PriorityEnum(str, Enum):
 
 class NotificationStatusEnum(str, Enum):
     PENDING = "pending"
+    PROCESSING = "processing"
     SENT = "sent"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -29,11 +30,4 @@ class Notification(Base):
     priority: Mapped[str] = mapped_column(String, default=PriorityEnum.LOW)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str] = mapped_column(String, nullable=True)
-
-# def get_from_db(id):
-#     # todo
-#     notif = Notification()
-#     return notif
- 
-# def save_to_db(notif):
-#     pass
+    user_timezone: Mapped[str] = mapped_column(String, default="UTC")  # e.g., "Europe/Warsaw", "America/New_York"

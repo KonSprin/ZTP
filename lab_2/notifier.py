@@ -12,8 +12,15 @@ LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 print(REDIS_URL)
 
 app = Celery('notifier', broker=REDIS_URL, backend=REDIS_URL)
-# app.conf.broker_url = REDIS_URL
-# app.conf.result_backend = REDIS_URL
+
+app.conf.task_routes = {
+    'send_email_notification': {'queue': 'email_queue'},
+    'send_push_notification': {'queue': 'push_queue'},
+}
+
+app.conf.task_default_queue = 'default'
+app.conf.task_default_exchange = 'default'
+app.conf.task_default_routing_key = 'default'
 
 app.conf.beat_schedule = {
     'process-scheduled-notifications': {
@@ -21,6 +28,9 @@ app.conf.beat_schedule = {
         'schedule': 60.0,  # Every 60 seconds
     },
 }
+
+app.conf.task_acks_late = True  # Task acknowledged after completion, not before
+app.conf.worker_prefetch_multiplier = 1  # Workers fetch one task at a time (ensures fair distribution)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
@@ -31,12 +41,3 @@ app.autodiscover_tasks(['notifier'])
 @app.task
 def add(x, y):
     return x + y
-
-# # Register tasks
-# @app.task(bind=True, name='send_notification')
-# def send_notification_task(self, notification_id: int):
-#     return notifier.send_notification(notification_id)
-
-# @app.task(name='process_scheduled_notifications')
-# def process_scheduled_notifications_task():
-#     return notifier.process_scheduled_notifications()

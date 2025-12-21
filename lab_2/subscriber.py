@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-REDIS_HOST = os.getenv('HOST', 'localhost')
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 PUSH_CHANNEL = os.getenv('PUSH_CHANNEL', 'notifications:push')
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '2137')

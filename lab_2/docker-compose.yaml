@@ -17,19 +17,34 @@ services:
     #   LOG_LEVEL: ${LOG_LEVEL}
     restart: no
 
-  celery_worker:
-    container_name: celery_worker
+  # celery_worker:
+  #   build: .
+  #   command: poetry run celery -A notifier worker --loglevel=info
+  #   # depends_on:
+  #   #   - redis
+  #   #   - postgres
+  #   env_file:
+  #     - .env    
+  #   # environment:
+  #   #   SQLALCHEMY_DATABASE_URL: ${SQLALCHEMY_DATABASE_URL}
+  #   #   REDIS_URL: ${REDIS_URL}
+  #   #   LOG_LEVEL: ${LOG_LEVEL}
+  #   restart: no
+
+  celery_worker_email:
+    container_name: worker_email
     build: .
-    command: poetry run celery -A notifier worker --loglevel=info
-    # depends_on:
-    #   - redis
-    #   - postgres
+    command: poetry run celery -A notifier worker --loglevel=info -Q email_queue --concurrency=4
     env_file:
-      - .env    
-    # environment:
-    #   SQLALCHEMY_DATABASE_URL: ${SQLALCHEMY_DATABASE_URL}
-    #   REDIS_URL: ${REDIS_URL}
-    #   LOG_LEVEL: ${LOG_LEVEL}
+      - .env
+    restart: no
+
+  celery_worker_push:
+    container_name: worker_push
+    build: .
+    command: poetry run celery -A notifier worker --loglevel=info -Q push_queue --concurrency=8
+    env_file:
+      - .env
     restart: no
 
   celery_beat:

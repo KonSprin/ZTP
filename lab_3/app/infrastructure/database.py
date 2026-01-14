@@ -12,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 metadata = MetaData()
@@ -28,8 +28,8 @@ cart_events = Table(
     Column("aggregate_version", Integer, nullable=False),
     Column("event_type", String(100), nullable=False),
     Column("event_data", JSON, nullable=False),
-    Column("occurred_at", DateTime, nullable=False, default=datetime.utcnow),
-    Column("created_at", DateTime, nullable=False, default=datetime.utcnow),
+    Column("occurred_at", DateTime, nullable=False, default=datetime.now(timezone.utc)),
+    Column("created_at", DateTime, nullable=False, default=datetime.now(timezone.utc)),
     # Unique constraint zapewnia spójność - jeden version na aggregate
     # To jest kluczowe dla optimistic locking
     Index("idx_aggregate_version", "aggregate_id", "aggregate_version", unique=True),
@@ -50,7 +50,7 @@ cart_read_model = Table(
     Column("version", Integer, nullable=False, default=0),
     Column("created_at", DateTime, nullable=False),
     Column("last_activity", DateTime, nullable=False),
-    Column("updated_at", DateTime, nullable=False, default=datetime.utcnow),
+    Column("updated_at", DateTime, nullable=False, default=datetime.now(timezone.utc)),
     Index("idx_user_status", "user_id", "status"),
     Index("idx_last_activity", "last_activity"),
 )

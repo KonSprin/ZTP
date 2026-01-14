@@ -1,7 +1,17 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 app = FastAPI(title="Products Service (Mock)")
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class Product(BaseModel):
@@ -16,21 +26,21 @@ class Product(BaseModel):
 PRODUCTS = {
     "P001": Product(
         id="P001",
-        name="Dell XPS 13",
+        name="Laptop Dell XPS 13",
         price=4999.99,
         stock=10,
         description="13-inch ultrabook with Intel i7"
     ),
     "P002": Product(
         id="P002",
-        name="Klawiatura Logitech",
+        name="Klawiatura mechaniczna Logitech",
         price=399.99,
         stock=25,
         description="Mechanical keyboard with RGB lighting"
     ),
     "P003": Product(
         id="P003",
-        name="Logitech MX Master",
+        name="Mysz bezprzewodowa Logitech MX Master",
         price=349.99,
         stock=50,
         description="Wireless ergonomic mouse"

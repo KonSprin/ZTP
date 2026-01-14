@@ -130,6 +130,7 @@
     <script>
         const cartId = '{{ cart_id }}';
         const API_BASE = '/api/v1/cart';
+        const PRODUCTS_URL = window.location.protocol + '//' + window.location.hostname + ':8001';
         let availableProducts = [];
 
         async function loadCart() {
@@ -154,7 +155,7 @@
 
         async function loadProducts() {
             try {
-                const response = await fetch('http://192.168.100.14:8001/products');
+                const response = await fetch(`${PRODUCTS_URL}/products`);
                 const data = await response.json();
                 availableProducts = data.products;
                 

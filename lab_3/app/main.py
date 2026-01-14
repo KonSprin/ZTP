@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
 from app.infrastructure.database import Database
@@ -45,6 +46,15 @@ app = FastAPI(
     description="Event-sourced shopping cart with CQRS pattern",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+# CORS middleware - allow requests from frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include API routes

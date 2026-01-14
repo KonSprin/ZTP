@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:18.0-trixie
+    container_name: postgres
+    restart: unless-stopped
+    volumes:
+      - postgresql_data:/var/lib/postgresql/18/docker
+      # - ./initdb.d:/docker-entrypoint-initdb.d
+    env_file:
+      - .env    
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:8.4.0-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel verbose --requirepass ${REDIS_PASSWORD}
+    volumes: 
+      - cache:/data
+    networks:
+      - redis-network
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      retries: 3
+      timeout: 5s
+    env_file:
+      - .env
+
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    volumes:
+      - redis-insight-data:/data
+    depends_on:
+      - redis
+    labels:
+      - homepage.group=Database
+      - homepage.name=Redis
+      - homepage.icon=redis.png
+      - homepage.href=http://${IP}:5540
+
+volumes:
+  cache:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${REDIS_DATA}
+  redis-insight-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${REDIS_INSIGHT_DATA}

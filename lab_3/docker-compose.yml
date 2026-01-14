@@ -1,0 +1,40 @@
+services:
+  app:
+    container_name: app
+    restart: no
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PRODUCTS_SERVICE_URL: http://products:8001
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    #   redis:
+    #     condition: service_healthy
+    volumes:
+      - ./app:/app/app
+    command: poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    labels:
+      - homepage.group=ZTP
+      - homepage.name=APP
+      - homepage.icon=mdi-cart-outline
+      - homepage.href=http://${IP}:8000/docs
+
+
+  products:
+    container_name: products
+    restart: no
+    build: .
+    ports:
+      - "8001:8001"
+    command: poetry run uvicorn app.products_mock:app --host 0.0.0.0 --port 8001 --reload
+    volumes:
+      - ./app:/app/app
+    labels:
+      - homepage.group=ZTP
+      - homepage.name=Products
+      - homepage.icon=mdi-package-variant-closed
+      - homepage.href=http://${IP}:8001/docs

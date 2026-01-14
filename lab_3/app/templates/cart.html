@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koszyk - E-commerce</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Szczegóły Koszyka</h1>
+                        <p class="text-sm text-gray-500 mt-1" id="cartId">Cart ID: {{ cart_id }}</p>
+                    </div>
+                    <a href="/" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                        ← Powrót
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Loading State -->
+            <div id="loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">Ładowanie koszyka...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="hidden">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-red-900 mb-2">Błąd</h3>
+                    <p class="text-red-800" id="errorMessage"></p>
+                </div>
+            </div>
+
+            <!-- Cart Content -->
+            <div id="cartContent" class="hidden space-y-6">
+                <!-- Cart Info -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-xl font-semibold mb-2">Informacje o koszyku</h2>
+                            <p class="text-sm text-gray-600">User ID: <span id="userId" class="font-medium"></span></p>
+                            <p class="text-sm text-gray-600">Status: <span id="status" class="font-semibold"></span></p>
+                            <p class="text-sm text-gray-600">Wersja: <span id="version"></span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600">Liczba produktów</p>
+                            <p class="text-2xl font-bold text-gray-900" id="itemCount">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Product Section -->
+                <div id="addProductSection" class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Dodaj Produkt</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Wybierz Produkt
+                            </label>
+                            <select id="productSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="">Ładowanie produktów...</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Ilość
+                            </label>
+                            <input 
+                                type="number" 
+                                id="quantity"
+                                value="1"
+                                min="1"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                            >
+                        </div>
+                        
+                        <button 
+                            onclick="addProduct()"
+                            class="w-full px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+                        >
+                            Dodaj do Koszyka
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cart Items -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Produkty w koszyku</h3>
+                    <div id="itemsList" class="space-y-3">
+                        <p class="text-gray-500 text-center py-8">Koszyk jest pusty</p>
+                    </div>
+                </div>
+
+                <!-- Cart Summary -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Podsumowanie</h3>
+                        <p class="text-2xl font-bold text-gray-900">
+                            <span id="totalAmount">0.00</span> PLN
+                        </p>
+                    </div>
+                    
+                    <button 
+                        id="checkoutBtn"
+                        onclick="checkout()"
+                        class="w-full px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                        Finalizuj Zamówienie
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+                <p id="successText"></p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const cartId = '{{ cart_id }}';
+        const API_BASE = '/api/v1/cart';
+        let availableProducts = [];
+
+        async function loadCart() {
+            try {
+                const response = await fetch(`${API_BASE}/${cartId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Koszyk nie znaleziony');
+                }
+
+                const cart = await response.json();
+                displayCart(cart);
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('cartContent').classList.remove('hidden');
+            } catch (error) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('errorState').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch('http://192.168.100.14:8001/products');
+                const data = await response.json();
+                availableProducts = data.products;
+                
+                const select = document.getElementById('productSelect');
+                select.innerHTML = '<option value="">-- Wybierz produkt --</option>' +
+                    availableProducts.map(p => 
+                        `<option value="${p.id}">${p.name} - ${p.price.toFixed(2)} PLN</option>`
+                    ).join('');
+            } catch (error) {
+                console.error('Failed to load products:', error);
+            }
+        }
+
+        function displayCart(cart) {
+            document.getElementById('userId').textContent = cart.user_id;
+            document.getElementById('status').textContent = cart.status;
+            document.getElementById('version').textContent = cart.version;
+            document.getElementById('itemCount').textContent = cart.item_count;
+            document.getElementById('totalAmount').textContent = cart.total_amount.toFixed(2);
+            
+            const statusSpan = document.getElementById('status');
+            if (cart.status === 'PENDING') {
+                statusSpan.className = 'font-semibold text-blue-600';
+            } else if (cart.status === 'CHECKED_OUT') {
+                statusSpan.className = 'font-semibold text-green-600';
+                document.getElementById('addProductSection').classList.add('hidden');
+                document.getElementById('checkoutBtn').disabled = true;
+            } else {
+                statusSpan.className = 'font-semibold text-gray-600';
+                document.getElementById('addProductSection').classList.add('hidden');
+                document.getElementById('checkoutBtn').disabled = true;
+            }
+
+            if (cart.items.length === 0) {
+                document.getElementById('itemsList').innerHTML = 
+                    '<p class="text-gray-500 text-center py-8">Koszyk jest pusty</p>';
+                document.getElementById('checkoutBtn').disabled = true;
+            } else {
+                displayItems(cart.items, cart.status === 'PENDING');
+                document.getElementById('checkoutBtn').disabled = cart.status !== 'PENDING';
+            }
+        }
+
+        function displayItems(items, canModify) {
+            const list = document.getElementById('itemsList');
+            list.innerHTML = items.map(item => `
+                <div class="flex justify-between items-center border-b border-gray-200 pb-3">
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">${item.product_name}</p>
+                        <p class="text-sm text-gray-600">
+                            ${item.price.toFixed(2)} PLN × ${item.quantity} = ${item.total_price.toFixed(2)} PLN
+                        </p>
+                    </div>
+                    ${canModify ? `
+                        <button 
+                            onclick="removeProduct('${item.product_id}')"
+                            class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
+                        >
+                            Usuń
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function addProduct() {
+            const productId = document.getElementById('productSelect').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            
+            if (!productId) {
+                alert('Wybierz produkt');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/${cartId}/items`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: quantity
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Błąd dodawania produktu');
+                }
+
+                showSuccess('Produkt dodany do koszyka!');
+                await loadCart();
+                
+                document.getElementById('productSelect').value = '';
+                document.getElementById('quantity').value = '1';
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        }
+
+        async function removeProduct(productId) {
+            try {
+                const response = await fetch(`${API_BASE}/${cartId}/items`, {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({product_id: productId})
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Błąd usuwania produktu');
+                }
+
+                showSuccess('Produkt usunięty z koszyka!');
+                await loadCart();
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        }
+
+        async function checkout() {
+            if (!confirm('Czy na pewno chcesz sfinalizować zamówienie?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/${cartId}/checkout`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Błąd finalizacji zamówienia');
+                }
+
+                const data = await response.json();
+                showSuccess(`Zamówienie złożone! Order ID: ${data.order_id}`);
+                
+                setTimeout(() => {
+                    loadCart();
+                }, 2000);
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        }
+
+        function showSuccess(message) {
+            const msg = document.getElementById('successMessage');
+            document.getElementById('successText').textContent = message;
+            msg.classList.remove('hidden');
+            
+            setTimeout(() => {
+                msg.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Initialize
+        loadCart();
+        loadProducts();
+    </script>
+</body>
+</html>

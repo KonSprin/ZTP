@@ -32,6 +32,7 @@ services:
       - "8001:8001"
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      SMTP_SERVER: ${SMTP_SERVER}
     command: poetry run uvicorn app.products_service:app --host 0.0.0.0 --port 8001 --reload
     volumes:
       - ./app:/app/app
@@ -40,3 +41,15 @@ services:
       - homepage.name=Products
       - homepage.icon=mdi-package-variant-closed
       - homepage.href=http://${IP}:8001/docs
+
+  mailhog:
+    container_name: mailhog
+    image: mailhog/mailhog
+    ports:
+      - "1025:25"
+      - "8025:8025"
+    labels:
+      - homepage.group=ZTP
+      - homepage.name=Mailhog
+      - homepage.icon=mdi-mail
+      - homepage.href=http://${IP}:8025/#
